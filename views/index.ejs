@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Calculation Log Web App using Node.js</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font: 13px Helvetica, Arial; }
+        form { background: #fff; padding: 3px; position: fixed; bottom: 0; width: 100%; border-color: #000; border-top-style: solid; border-top-width: 1px;}
+        form input { border-style: solid; border-width: 1px; padding: 10px; width: 85%; margin-right: .5%; }
+        form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; margin-left: 2%; }
+        #expression { list-style-type: none; margin: 0; padding: 0; }
+        #expression li { padding: 5px 10px; }
+    </style>
+    <script src="../../socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+  </head>
+  <body>
+    <ul id="expression"></ul>
+    <form action="/" method="POST" id="chatForm">
+      <input id="txt" autocomplete="off" autofocus="on" placeholder="type your message here..." /><button>Send</button>
+    </form>
+    <script>
+            var socket = io.connect('http://localhost:8080');
+            
+            // submit expression without reload/refresh the page
+            $('form').submit(function(e){
+                e.preventDefault(); // prevents page reloading
+                socket.emit('len', null);
+                socket.emit('expression', $('#txt').val());
+                $('#txt').val('');
+                return false;
+            });
+
+            // if total expression more than 10. Remove first one from list.
+            socket.on('len', function(len){
+                if(parseInt(len) == 10){
+                    $('#expression li').first().remove();
+                }
+            });
+        
+            // append the expression in list
+            socket.on('expression', function(msg){
+                $('#expression').append($('<li>').html(msg));
+            });
+
+            // alert user when invalid expression
+            socket.on('err', function(d){
+                alert('Invalid expression'); 
+            });
+        
+            // new user can see expression history from other user when first join.
+            socket.on('session_login', function(data){
+                for(var i = 0 ; i < data.length ; i ++){
+                    console.log(data[i]);
+                    $('#expression').append($('<li>').html(data[i]));
+                }
+            });
+        
+            socket.emit('session_login', null);
+
+    </script>
+  </body>
+</html>
